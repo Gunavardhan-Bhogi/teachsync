@@ -1,5 +1,33 @@
 import { GoogleGenAI } from '@google/genai';
 
+/**
+ * Helper to handle transient API spikes (e.g. 503 high demand) with exponential backoff.
+ */
+const retryWithBackoff = async (fn, retries = 3, delay = 1000) => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      const isTransient =
+        err.status === 503 ||
+        err.status === 429 ||
+        err.message?.includes('503') ||
+        err.message?.includes('high demand') ||
+        err.message?.includes('UNAVAILABLE');
+
+      if (isTransient && i < retries - 1) {
+        const waitTime = delay * Math.pow(2, i);
+        console.warn(
+          `[Gemini Transcription] Transient error (${err.status || '503'}). Retrying in ${waitTime}ms... (Attempt ${i + 1}/${retries})`
+        );
+        await new Promise((res) => setTimeout(res, waitTime));
+      } else {
+        throw err;
+      }
+    }
+  }
+};
+
 export const transcribeAudio = async (audioBuffer, mimeType) => {
   try {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -18,25 +46,28 @@ export const transcribeAudio = async (audioBuffer, mimeType) => {
       Only output the exact spoken text.
     `;
 
-    const response = await ai.models.generateContent({
-      model: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            {
-              inlineData: {
-                mimeType: mimeType || 'audio/webm',
-                data: audioBase64,
+    // Wrap the Gemini call in the retry utility
+    const response = await retryWithBackoff(() => 
+      ai.models.generateContent({
+        model: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              {
+                inlineData: {
+                  mimeType: mimeType || 'audio/webm',
+                  data: audioBase64,
+                },
               },
-            },
-            {
-              text: prompt,
-            },
-          ],
-        },
-      ],
-    });
+              {
+                text: prompt,
+              },
+            ],
+          },
+        ],
+      })
+    );
 
     return response.text.trim();
   } catch (error) {

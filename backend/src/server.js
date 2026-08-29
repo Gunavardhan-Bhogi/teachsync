@@ -8,7 +8,7 @@ import lectureRoutes from './routes/lecture.routes.js';
 // dotenv.config();
 
 // Connect to Database
-connectDB();
+await connectDB();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
