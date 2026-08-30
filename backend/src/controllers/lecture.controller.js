@@ -52,7 +52,7 @@ export const generateDraft = async (req, res, next) => {
     const lectureDraft = new Lecture({
       classId,
       topic: lectureTopic,
-      rawTranscript: rawTranscript, // Saving the text for the frontend review screen
+      transcript: rawTranscript,
       audioSource: req.file.originalname || 'Uploaded Audio',
       summary: aiAnalysis.summary || { keyTakeaways: [], detailedNotes: '' },
       assessment: aiAnalysis.assessment || [],
@@ -66,7 +66,7 @@ export const generateDraft = async (req, res, next) => {
       message: 'Lecture draft generated successfully',
       lectureId: savedDraft._id,
       topic: aiAnalysis.topic,
-      rawTranscript,
+      transcript: rawTranscript,
       summary: aiAnalysis.summary,
       assessment: aiAnalysis.assessment
     });
@@ -80,7 +80,7 @@ export const generateDraft = async (req, res, next) => {
 // @route  POST /api/lectures/dispatch
 export const dispatchLecture = async (req, res) => {
   try {
-    const { lectureId, summary, assessment, topic } = req.body;
+    const { lectureId, summary, assessment, topic, transcript } = req.body;
 
     if (!lectureId) {
       return res.status(400).json({ error: 'lectureId is required.' });
@@ -92,6 +92,7 @@ export const dispatchLecture = async (req, res) => {
     }
 
     if (topic) lecture.topic = topic;
+    if (transcript !== undefined) lecture.transcript = transcript;
     if (summary) lecture.summary = summary;
     if (assessment) lecture.assessment = assessment;
     lecture.status = 'dispatched';

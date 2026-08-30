@@ -40,6 +40,10 @@ const lectureSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    transcript: {
+      type: String,
+      default: '',
+    },
     audioSource: {
       type: String,
       default: '',
