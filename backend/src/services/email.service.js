@@ -28,18 +28,24 @@ const renderLectureEmailTemplate = ({ className, subject, topic, summary, assess
 
   const questionsHtml = (assessment || [])
     .map((q) => {
-      const optionsHtml = q.options && q.options.length > 0
-        ? `<ol type="A" style="margin-top: 8px; margin-bottom: 12px; padding-left: 20px; color: #475569;">
+      let detailsHtml = '';
+
+      if (q.questionType === 'mcq' && q.options && q.options.length > 0) {
+        detailsHtml = `<ol type="A" style="margin-top: 8px; margin-bottom: 12px; padding-left: 20px; color: #475569;">
             ${q.options.map((opt) => `<li style="margin-bottom: 4px;">${opt}</li>`).join('')}
-           </ol>`
-        : '';
+           </ol>`;
+      } else if (q.questionType === 'short_answer' || q.questionType === 'fill_in_the_blank') {
+        detailsHtml = `<p style="margin: 8px 0 12px 0; color: #475569; font-size: 14px;">
+            <strong>Answer:</strong> ${q.correctAnswer || ''}
+          </p>`;
+      }
 
       return `
         <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
           <p style="margin: 0 0 8px 0; font-weight: 600; color: #1e293b;">
             Q${q.questionNumber}. ${q.question}
           </p>
-          ${optionsHtml}
+          ${detailsHtml}
         </div>
       `;
     })
